@@ -1,47 +1,56 @@
-import re
+def verificar_requisitos(texto):
+    """
+    Verifica requisitos básicos do currículo.
+    Retorna aprovado/reprovado e os motivos.
+    """
 
-def extrair_experiencia(texto: str) -> float:
-    padroes = [
-        r"(\d+(?:[.,]\d+)?)\s*anos?\s+de\s+experi",
-        r"(?:experi[êe]ncia).*?(\d+(?:[.,]\d+)?)\s*anos?"
+    texto_lower = texto.lower()
+
+    requisitos = {
+        "python": "python" in texto_lower,
+        "sql": "sql" in texto_lower,
+        "dados": any(
+    palavra in texto_lower
+    for palavra in [
+        "data science",
+        "ciência de dados",
+        "ciencia de dados",
+        "data analyst",
+        "data analytics",
+        "analista de dados",
+        "análise de dados",
+        "analise de dados",
+        "banco de dados",
+        "banco de dados",
+        "power bi",
+        "business intelligence",
+        "bi",
+        "etl",
+        "pandas",
+        "numpy"
     ]
+),
+        "experiencia": any(
+            palavra in texto_lower
+            for palavra in [
+                "experiência",
+                "experiencia",
+                "estágio",
+                "estagio"
+            ]
+        )
+    }
 
-    for padrao in padroes:
-        resultado = re.search(padrao, texto, re.IGNORECASE)
-        if resultado:
-            return float(resultado.group(1).replace(",", "."))
+    motivos = []
 
-    return 0.0
+    for requisito, encontrado in requisitos.items():
+        if not encontrado:
+            motivos.append(f"Não possui indicação de {requisito}")
 
-
-def extrair_pretensao_salarial(texto: str) -> float:
-    padroes = [
-        r"(?:pretens[aã]o|sal[aá]rio).*?R?\$?\s*([\d.]+(?:,\d+)?)",
-        r"R\$\s*([\d.]+(?:,\d+)?)"
-    ]
-
-    for padrao in padroes:
-        resultado = re.search(padrao, texto, re.IGNORECASE)
-        if resultado:
-            valor = resultado.group(1).replace(".", "").replace(",", ".")
-            return float(valor)
-
-    return 0.0
-
-
-def aplicar_filtros(texto: str, experiencia_minima: float, salario_maximo: float):
-    experiencia = extrair_experiencia(texto)
-    salario = extrair_pretensao_salarial(texto)
-
-    experiencia_ok = experiencia >= experiencia_minima
-    salario_ok = salario == 0 or salario <= salario_maximo
-
-    aprovado = experiencia_ok and salario_ok
+    aprovado = len(motivos) == 0
 
     return {
         "aprovado": aprovado,
-        "experiencia": experiencia,
-        "salario": salario,
-        "experiencia_ok": experiencia_ok,
-        "salario_ok": salario_ok
+        "requisitos": requisitos,
+        "motivos": motivos
     }

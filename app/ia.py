@@ -1,54 +1,44 @@
 import os
-import tiktoken
+
+from dotenv import load_dotenv
 from openai import OpenAI
 
 
-def analisar_curriculo(texto: str, modelo: str):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+load_dotenv()
 
-    prompt = f"""Analise o currículo abaixo para uma agência de empregos focada em tecnologia.
+api_key = os.getenv("OPENAI_API_KEY")
+modelo = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-Gere:
-1. Um parecer qualitativo sobre a senioridade.
-2. Uma análise das soft skills implícitas no currículo.
-3. Um resumo executivo objetivo para o recrutador.
+if not api_key:
+    raise ValueError("A variável OPENAI_API_KEY não foi encontrada no arquivo .env")
 
-Não invente informações que não estejam no currículo.
+client = OpenAI(api_key=api_key)
+
+
+def analisar_curriculo(texto):
+    prompt = f"""
+Você é um recrutador responsável por analisar currículos para uma vaga de tecnologia.
+
+Analise o currículo abaixo e produza:
+
+1. Resumo do candidato
+2. Principais competências
+3. Experiências relevantes
+4. Pontos positivos
+5. Pontos que precisam ser desenvolvidos
+6. Adequação do candidato à área de Dados
+7. Parecer final
+
+Seja objetivo e profissional.
 
 CURRÍCULO:
+
 {texto}
 """
 
-    resposta = client.chat.completions.create(
+    resposta = client.responses.create(
         model=modelo,
-        messages=[
-            {
-                "role": "system",
-                "content": "Você é um analista de recrutamento especializado em tecnologia."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.2
+        input=prompt
     )
 
-    encoding = tiktoken.encoding_for_model(modelo)
-
-    prompt_tokens = len(encoding.encode(prompt))
-    completion_text = resposta.choices[0].message.content or ""
-    completion_tokens = len(encoding.encode(completion_text))
-    total_tokens = prompt_tokens + completion_tokens
-
-    # Valor de referência configurável para estimativa.
-    preco_por_mil_tokens = 0.0015
-    custo_estimado = (total_tokens / 1000) * preco_por_mil_tokens
-
-    return {
-        "texto": completion_text,
-        "prompt_tokens": prompt_tokens,
-        "completion_tokens": completion_tokens,
-        "total_tokens": total_tokens,
-        "custo_estimado": custo_estimado
-    }
+    return resposta.output_text

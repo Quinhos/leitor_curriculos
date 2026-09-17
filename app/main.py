@@ -1,68 +1,41 @@
-import os
-from dotenv import load_dotenv
-
-from app.pdf_reader import extrair_texto
-from app.filtros import aplicar_filtros
-from app.ia import analisar_curriculo
-from app.relatorio import gerar_relatorio
+from pdf_reader import ler_curriculos
+from filtros import verificar_requisitos
+from ia import analisar_curriculo
 
 
-def main():
-    load_dotenv()
+print("Iniciando análise dos currículos...")
 
-    print("=" * 55)
-    print("AGÊNCIA DE EMPREGOS TECH - TRIAGEM DE CURRÍCULOS")
-    print("=" * 55)
+curriculos = ler_curriculos("curriculos")
 
-    pdf_path = input("Caminho do currículo PDF: ").strip()
-    experiencia_minima = float(input("Experiência mínima (anos): ").replace(",", "."))
-    salario_maximo = float(input("Orçamento máximo da vaga (R$): ").replace(",", "."))
+print(f"Currículos encontrados: {len(curriculos)}")
 
-    texto = extrair_texto(pdf_path)
 
-    if not texto:
-        print("Não foi possível extrair texto do PDF.")
-        return
+for curriculo in curriculos:
 
-    filtros = aplicar_filtros(
-        texto,
-        experiencia_minima,
-        salario_maximo
-    )
+    resultado = verificar_requisitos(curriculo["texto"])
 
-    print("\n--- FILTROS ---")
-    print(f"Experiência encontrada: {filtros['experiencia']:.1f} anos")
-    print(f"Experiência mínima: {'OK' if filtros['experiencia_ok'] else 'NÃO ATENDIDA'}")
+    print("\n" + "=" * 60)
+    print(f"ARQUIVO: {curriculo['arquivo']}")
+    print("=" * 60)
 
-    if filtros["salario"]:
-        print(f"Pretensão salarial: R$ {filtros['salario']:.2f}")
+    if resultado["aprovado"]:
+
+        print("STATUS: APROVADO")
+        print("\nEnviando currículo para análise da IA...")
+
+        try:
+            analise = analisar_curriculo(curriculo["texto"])
+
+            print("\nANÁLISE DA IA:")
+            print(analise)
+
+        except Exception as erro:
+            print(f"\nErro ao analisar com a IA: {erro}")
+
     else:
-        print("Pretensão salarial: não identificada")
 
-    print(f"Faixa salarial: {'OK' if filtros['salario_ok'] else 'NÃO ATENDIDA'}")
-    print(f"Resultado: {'APROVADO' if filtros['aprovado'] else 'REPROVADO'}")
+        print("STATUS: REPROVADO")
 
-    analise = None
-
-    if filtros["aprovado"]:
-        if not os.getenv("OPENAI_API_KEY"):
-            print("\nCurrículo aprovado, mas OPENAI_API_KEY não configurada.")
-        else:
-            modelo = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-            print("\nExecutando análise generativa...")
-            analise = analisar_curriculo(texto, modelo)
-
-            print("\n--- PARECER DA IA ---")
-            print(analise["texto"])
-            print("\n--- TOKENS ---")
-            print(f"Entrada: {analise['prompt_tokens']}")
-            print(f"Saída: {analise['completion_tokens']}")
-            print(f"Total: {analise['total_tokens']}")
-            print(f"Custo estimado: US$ {analise['custo_estimado']:.6f}")
-
-    relatorio = gerar_relatorio(pdf_path, filtros, analise)
-    print(f"\nRelatório salvo em: {relatorio}")
-
-
-if __name__ == "__main__":
-    main()
+        print("\nMotivos:")
+        for motivo in resultado["motivos"]:
+            print(f"- {motivo}")

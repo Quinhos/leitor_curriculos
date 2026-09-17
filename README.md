@@ -1,4 +1,6 @@
 # Agência de Empregos Tech
+ Nome: Marcos Santos / RM: 560062 <br>
+ Nome: Davi Correia / RM: 560438
 
 Projeto em Python para triagem automatizada de currículos de desenvolvedores em PDF.
 

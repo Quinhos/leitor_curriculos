@@ -1,0 +1,4 @@
+pypdf
+openai
+tiktoken
+python-dotenv

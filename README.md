@@ -4,6 +4,8 @@
 
 Projeto em Python para triagem automatizada de currículos de desenvolvedores em PDF.
 
+
+
 ## Fluxo
 
 1. Extrai o texto do currículo em PDF.

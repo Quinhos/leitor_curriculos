@@ -1,42 +1,91 @@
 import os
 
+import tiktoken
 from dotenv import load_dotenv
 from ollama import chat
 
 
 load_dotenv()
 
-modelo = os.getenv("OLLAMA_MODEL", "deepseek-r1:7b")
+modelo = os.getenv(
+    "OLLAMA_MODEL",
+    "deepseek-r1:7b"
+)
+
+
+def contar_tokens(texto):
+
+    encoding = tiktoken.get_encoding(
+        "cl100k_base"
+    )
+
+    return len(
+        encoding.encode(texto)
+    )
 
 
 def analisar_curriculo(texto):
-    """
-    Envia o currículo para o modelo local do Ollama
-    e retorna a análise.
-    """
 
     prompt = f"""
-Você é um recrutador responsável por analisar currículos
-para uma vaga de tecnologia com foco em Dados.
+Você é um recrutador especializado em profissionais
+do ecossistema de tecnologia.
 
-Analise o currículo abaixo e produza:
+Analise o currículo abaixo.
 
-1. Resumo do candidato
-2. Principais competências
-3. Experiências relevantes
-4. Pontos positivos
-5. Pontos que precisam ser desenvolvidos
-6. Adequação do candidato à área de Dados
-7. Parecer final
+A análise deve obrigatoriamente conter as seguintes seções:
 
-Seja objetivo e profissional.
-Baseie sua análise exclusivamente nas informações presentes
-no currículo. Não invente experiências ou qualificações.
+1. SENIORIDADE
+Identifique a senioridade aparente do candidato
+(Júnior, Pleno ou Sênior) e explique brevemente
+os elementos do currículo que justificam essa avaliação.
+
+2. SOFT SKILLS
+Identifique soft skills que podem ser inferidas
+a partir das experiências, projetos e atividades
+descritas no currículo.
+
+Não invente características que não possam ser
+inferidas pelas informações fornecidas.
+
+3. COMPETÊNCIAS TÉCNICAS
+Liste as principais tecnologias, linguagens,
+ferramentas e conhecimentos apresentados.
+
+4. EXPERIÊNCIAS RELEVANTES
+Resuma as experiências profissionais e acadêmicas
+mais relevantes para uma vaga de tecnologia.
+
+5. PONTOS POSITIVOS
+Apresente os principais pontos fortes observados.
+
+6. PONTOS A DESENVOLVER
+Identifique conhecimentos ou competências que
+poderiam ser desenvolvidos.
+
+7. RESUMO EXECUTIVO
+Crie um resumo curto e profissional do candidato,
+escrito especificamente para ser enviado ao
+recrutador da empresa contratante.
+
+8. PARECER QUALITATIVO
+Apresente uma conclusão objetiva sobre a aderência
+do perfil à vaga de tecnologia.
+
+Baseie toda a análise exclusivamente nas informações
+presentes no currículo.
+
+Não invente experiências, tecnologias, certificações,
+formações ou características pessoais.
 
 CURRÍCULO:
 
 {texto}
 """
+
+    # Contagem complementar utilizando tiktoken
+    tokens_tiktoken_entrada = contar_tokens(
+        prompt
+    )
 
     resposta = chat(
         model=modelo,
@@ -48,4 +97,41 @@ CURRÍCULO:
         ]
     )
 
-    return resposta.message.content
+    analise = resposta.message.content
+
+    tokens_entrada = getattr(
+        resposta,
+        "prompt_eval_count",
+        None
+    )
+
+    tokens_saida = getattr(
+        resposta,
+        "eval_count",
+        None
+    )
+
+    if tokens_entrada is None:
+        tokens_entrada = tokens_tiktoken_entrada
+
+    if tokens_saida is None:
+        tokens_saida = contar_tokens(
+            analise
+        )
+
+    tokens_total = (
+        tokens_entrada +
+        tokens_saida
+    )
+
+    custo_estimado = 0.00
+
+    return {
+        "modelo": modelo,
+        "analise": analise,
+        "tokens_entrada": tokens_entrada,
+        "tokens_saida": tokens_saida,
+        "tokens_total": tokens_total,
+        "tokens_tiktoken_entrada": tokens_tiktoken_entrada,
+        "custo_estimado": custo_estimado
+    }

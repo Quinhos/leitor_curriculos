@@ -1,5 +1,4 @@
 pypdf
-openai
 tiktoken
 python-dotenv
 ollama

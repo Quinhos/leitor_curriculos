@@ -1,23 +1,23 @@
 import os
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from ollama import chat
 
 
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY")
-modelo = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-if not api_key:
-    raise ValueError("A variável OPENAI_API_KEY não foi encontrada no arquivo .env")
-
-client = OpenAI(api_key=api_key)
+modelo = os.getenv("OLLAMA_MODEL", "deepseek-r1:7b")
 
 
 def analisar_curriculo(texto):
+    """
+    Envia o currículo para o modelo local do Ollama
+    e retorna a análise.
+    """
+
     prompt = f"""
-Você é um recrutador responsável por analisar currículos para uma vaga de tecnologia.
+Você é um recrutador responsável por analisar currículos
+para uma vaga de tecnologia com foco em Dados.
 
 Analise o currículo abaixo e produza:
 
@@ -30,15 +30,22 @@ Analise o currículo abaixo e produza:
 7. Parecer final
 
 Seja objetivo e profissional.
+Baseie sua análise exclusivamente nas informações presentes
+no currículo. Não invente experiências ou qualificações.
 
 CURRÍCULO:
 
 {texto}
 """
 
-    resposta = client.responses.create(
+    resposta = chat(
         model=modelo,
-        input=prompt
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     )
 
-    return resposta.output_text
+    return resposta.message.content
